@@ -97,19 +97,14 @@ impl BitXor for &Data {
 	type Output = Data;
 
 	fn bitxor(self, rhs: Self) -> Self::Output {
-		if rhs.len() != 1 && self.len() != rhs.len() {
-			panic!("Data must be equal length or RHS must be one byte to XOR.");
-		}
+		let bytes = self.bytes
+			.iter()
+			.zip(rhs.bytes.repeat(self.len() / rhs.len() + 1).iter())
+			.map(|(lhs, rhs)| lhs ^ rhs)
+			.collect();
 
-		if rhs.len() == 1 {
-			let byte = rhs.bytes[0];
-			Self::Output {
-				bytes: self.bytes.iter().map(|lhs| lhs ^ byte).collect(),
-			}
-		} else {
-			Self::Output {
-				bytes: self.bytes.iter().zip(rhs.bytes.iter()).map(|(lhs, rhs)| lhs ^ rhs).collect(),
-			}
+		Self::Output {
+			bytes,
 		}
 	}
 }
