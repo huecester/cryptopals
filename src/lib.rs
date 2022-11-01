@@ -7,9 +7,9 @@ use std::ops::BitXor;
 use tables::FREQUENCIES;
 use types::Result;
 
-const NON_GRAPHIC_PENALTY: i64 = -100000;
+const NON_GRAPHIC_PENALTY: i32 = -100000;
 
-pub type Guess = (Data, i64);
+pub type Guess = (Data, i32);
 
 #[derive(Debug)]
 pub struct Data {
@@ -30,7 +30,7 @@ impl Data {
 		guesses
 	}
 
-	fn score(&self) -> i64 {
+	fn score(&self) -> i32 {
 		self.bytes
 			.iter()
 			.fold(0, |acc, byte|
