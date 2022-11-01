@@ -17,17 +17,67 @@ pub struct Data {
 }
 
 impl Data {
-	pub fn guess_single_byte_xor(&self) -> Vec<Guess> {
-		let mut guesses: Vec<Guess> = (u8::MIN..=u8::MAX)
-			.map(|byte|  {
+	pub fn guess_repeating_key_xor(&self) -> Data {
+		let keysize = (2..=40.max(self.len() / 2))
+			.fold((0, 0), |acc, keysize| {
+				let (dist, count) = self.bytes
+					.chunks_exact(keysize)
+					.zip(self.bytes.chunks_exact(keysize).skip(1))
+					.fold((0, 0), |acc, (lhs, rhs)| {
+						(acc.0 + Data::from(lhs).hamming_distance(rhs), acc.1 + 1)
+					});
+
+				if acc.0 == 0 || dist / (keysize * count) < acc.1 {
+					(keysize, dist / (keysize * count))
+				} else {
+					acc
+				}
+			}).0;
+
+		let blocks: Vec<Data> = (0..keysize).map(|i| {
+			let block: Vec<u8> = self.bytes
+				.iter()
+				.copied()
+				.skip(i)
+				.step_by(keysize)
+				.collect();
+
+			Data::from(block).guess_single_byte_xor().0
+		}).collect();
+
+		let res: Vec<u8> = (0..blocks[0].len()).fold(vec![], |mut acc, i| {
+			for block in &blocks {
+				if let Some(byte) = block.bytes.get(i) {
+					acc.push(byte.to_owned())
+				}
+			}
+			acc
+		});
+
+		Data::from(res)
+	}
+
+	fn hamming_distance(&self, rhs: impl Into<Data>) -> usize {
+		self.bytes
+			.iter()
+			.zip(rhs.into().bytes.iter())
+			.fold(0, |acc, (lhs, rhs)| acc + (lhs ^ rhs).count_ones() as usize)
+	}
+
+	pub fn guess_single_byte_xor(&self) -> Guess {
+		let guess: (Option<Data>, i32) = (u8::MIN..=u8::MAX)
+			.fold((None, 0), |acc, byte| {
 				let byte = Data::from(vec![byte]);
 				let guess = self ^ &byte;
 				let score = guess.score();
-				(guess, score)
-			})
-			.collect();
-		guesses.sort_by_key(|k| -k.1);
-		guesses
+				if acc.0.is_none() || score > acc.1 {
+					(Some(guess), score)
+				} else {
+					acc
+				}
+			});
+
+		(guess.0.unwrap(), guess.1)
 	}
 
 	fn score(&self) -> i32 {
