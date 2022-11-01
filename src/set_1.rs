@@ -1,4 +1,5 @@
-use crate::Data;
+use std::fs::read_to_string;
+use crate::{Data, Guess};
 
 #[test]
 fn challenge_1() {
@@ -18,5 +19,18 @@ fn challenge_2() {
 fn challenge_3() {
 	let data = Data::from_hex("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736").unwrap();
 	let guess = data.guess_single_byte_xor();
-	assert_eq!("Cooking MC's like a pound of bacon", guess.as_str().unwrap());
+	assert_eq!("Cooking MC's like a pound of bacon", guess[0].0.as_str().unwrap());
+}
+
+#[test]
+fn challenge_4() {
+	let lines = read_to_string("res/1-4.txt").unwrap();
+	let mut guesses: Vec<Guess> = lines.split_ascii_whitespace()
+		.flat_map(|line| {
+			let data = Data::from_hex(line).unwrap();
+			data.guess_single_byte_xor()
+		})
+		.collect();
+	guesses.sort_by_key(|k| -k.1);
+	assert_eq!("Now that the party is jumping\n", guesses[0].0.as_str().unwrap());
 }

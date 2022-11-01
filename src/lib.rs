@@ -9,24 +9,25 @@ use types::Result;
 
 const NON_GRAPHIC_PENALTY: i64 = -100000;
 
+pub type Guess = (Data, i64);
+
 #[derive(Debug)]
 pub struct Data {
 	bytes: Vec<u8>,
 }
 
 impl Data {
-	pub fn guess_single_byte_xor(&self) -> Self {
-		(u8::MIN..=u8::MAX)
-			.fold((None, i64::MIN), |acc, byte|  {
+	pub fn guess_single_byte_xor(&self) -> Vec<Guess> {
+		let mut guesses: Vec<Guess> = (u8::MIN..=u8::MAX)
+			.map(|byte|  {
 				let byte = Data::from(vec![byte]);
 				let guess = self ^ &byte;
 				let score = guess.score();
-				if acc.0.is_none() || score > acc.1 {
-					(Some(guess), score)
-				} else {
-					acc
-				}
-			}).0.unwrap()
+				(guess, score)
+			})
+			.collect();
+		guesses.sort_by_key(|k| -k.1);
+		guesses
 	}
 
 	fn score(&self) -> i64 {
