@@ -109,10 +109,26 @@ impl BitXor for &Data {
 	}
 }
 
+impl BitXor<&str> for &Data {
+	type Output = Data;
+
+	fn bitxor(self, rhs: &str) -> Self::Output {
+		self ^ &Data::from(rhs)
+	}
+}
+
 impl BitXor for Data {
 	type Output = Data;
 
 	fn bitxor(self, rhs: Self) -> Self::Output {
 		&self ^ &rhs
+	}
+}
+
+impl BitXor<&str> for Data {
+	type Output = Data;
+
+	fn bitxor(self, rhs: &str) -> Self::Output {
+		&self ^ rhs
 	}
 }
