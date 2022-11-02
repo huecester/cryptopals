@@ -2,6 +2,7 @@ mod tables;
 mod types;
 
 #[cfg(test)] mod set_1;
+#[cfg(test)] mod set_2;
 
 use std::ops::BitXor;
 
@@ -36,6 +37,12 @@ impl Data {
 			.collect();
 		cipher.decrypt_blocks(&mut blocks);
 		Data::from(blocks.iter().flatten().copied().collect::<Vec<u8>>())
+	}
+
+	fn pkcs7_pad(&mut self, n: u8) -> &Data {
+		let padding = n - (self.len() % (n as usize)) as u8;
+		self.bytes.extend(std::iter::repeat(padding).take(padding as usize));
+		self
 	}
 
 	pub fn guess_repeating_key_xor(&self) -> Data {
