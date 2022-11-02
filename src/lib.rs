@@ -4,8 +4,18 @@ mod types;
 #[cfg(test)] mod set_1;
 
 use std::ops::BitXor;
+
 use tables::FREQUENCIES;
 use types::Result;
+
+use aes::{
+	Aes128,
+	cipher::{
+		BlockDecrypt,
+		KeyInit,
+		generic_array::GenericArray,
+	},
+};
 
 const NON_GRAPHIC_PENALTY: i32 = -100000;
 
@@ -17,6 +27,17 @@ pub struct Data {
 }
 
 impl Data {
+	pub fn aes_128_ecb_decrypt(&self, key: impl Into<Data>) -> Data {
+		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
+		let cipher = Aes128::new(&key);
+
+		let mut blocks: Vec<_> = (0..self.bytes.len()).step_by(16)
+			.map(|i| GenericArray::clone_from_slice(&self.bytes[i..i+16]))
+			.collect();
+		cipher.decrypt_blocks(&mut blocks);
+		Data::from(blocks.iter().flatten().copied().collect::<Vec<u8>>())
+	}
+
 	pub fn guess_repeating_key_xor(&self) -> Data {
 		let keysize = (2..=40.max(self.len() / 2))
 			.fold((0, 0), |acc, keysize| {
