@@ -69,7 +69,7 @@ impl Data {
 		let res: Vec<u8> = (0..blocks[0].len()).fold(vec![], |mut acc, i| {
 			for block in &blocks {
 				if let Some(byte) = block.bytes.get(i) {
-					acc.push(byte.to_owned())
+					acc.push(byte.to_owned());
 				}
 			}
 			acc
@@ -108,8 +108,8 @@ impl Data {
 				acc + byte.to_owned()
 					.try_into()
 					.ok()
-					.and_then(|c|
-						Some(FREQUENCIES.get(&c)
+					.map_or(0, |c|
+						FREQUENCIES.get(&c)
 							.copied()
 							.unwrap_or_else(|| {
 								if c.is_ascii_graphic() {
@@ -117,9 +117,8 @@ impl Data {
 								} else {
 									NON_GRAPHIC_PENALTY
 								}
-							}))
+							})
 					)
-					.unwrap_or(0)
 				)
 	}
 
@@ -153,6 +152,10 @@ impl Data {
 
 	pub fn len(&self) -> usize {
 		self.bytes.len()
+	}
+
+	pub fn is_empty(&self) -> bool {
+		self.bytes.is_empty()
 	}
 }
 
