@@ -1,5 +1,4 @@
 mod tables;
-mod types;
 
 #[cfg(test)] mod set_1;
 #[cfg(test)] mod set_2;
@@ -7,7 +6,6 @@ mod types;
 use std::ops::BitXor;
 
 use tables::FREQUENCIES;
-use types::Result;
 
 use aes::{
 	Aes128Dec,
@@ -24,12 +22,36 @@ const NON_GRAPHIC_PENALTY: i32 = -100000;
 
 pub type Guess = (Data, i32);
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Data {
 	bytes: Vec<u8>,
 }
 
 impl Data {
+	pub fn aes_128_cbc_decrypt(&self, key: impl Into<Data>, iv: impl Into<Data>) -> Data {
+		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
+		let cipher = Aes128Dec::new(&key);
+		let iv = iv.into();
+		let xor_data = vec![
+			vec![iv],
+			self.bytes.chunks_exact(16).map(|chunk| Data::from(chunk)).collect(),
+		];
+
+		let bytes: Vec<u8> = self.bytes
+			.chunks_exact(16)
+			.rev()
+			.zip(xor_data.iter().flatten().rev().skip(1))
+			.map(|(block, next_block)| {
+				let mut block = GenericArray::clone_from_slice(&block[0..16]);
+				cipher.decrypt_block(&mut block);
+				next_block ^ block.to_vec()
+			})
+			.flat_map(|data| data.bytes)
+			.collect();
+
+		Data::from(bytes)
+	}
+
 	pub fn aes_128_ecb_encrypt(&self, key: impl Into<Data>) -> Data {
 		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
 		let cipher = Aes128Enc::new(&key);
@@ -109,7 +131,7 @@ impl Data {
 		let guess: (Option<Data>, i32) = (u8::MIN..=u8::MAX)
 			.fold((None, 0), |acc, byte| {
 				let byte = Data::from(vec![byte]);
-				let guess = self ^ &byte;
+				let guess = self ^ byte;
 				let score = guess.score();
 				if acc.0.is_none() || score > acc.1 {
 					(Some(guess), score)
@@ -183,10 +205,11 @@ impl<T> From<T> for Data where T: Into<Vec<u8>> {
 	}
 }
 
-impl BitXor for &Data {
+impl<T> BitXor<T> for &Data where T: Into<Data> {
 	type Output = Data;
 
-	fn bitxor(self, rhs: Self) -> Self::Output {
+	fn bitxor(self, rhs: T) -> Self::Output {
+		let rhs = rhs.into();
 		let bytes = self.bytes
 			.iter()
 			.zip(rhs.bytes.repeat(self.len() / rhs.len() + 1).iter())
@@ -199,26 +222,10 @@ impl BitXor for &Data {
 	}
 }
 
-impl BitXor<&str> for &Data {
+impl<T> BitXor<T> for Data where T: Into<Data> {
 	type Output = Data;
 
-	fn bitxor(self, rhs: &str) -> Self::Output {
-		self ^ &Data::from(rhs)
-	}
-}
-
-impl BitXor for Data {
-	type Output = Data;
-
-	fn bitxor(self, rhs: Self) -> Self::Output {
-		&self ^ &rhs
-	}
-}
-
-impl BitXor<&str> for Data {
-	type Output = Data;
-
-	fn bitxor(self, rhs: &str) -> Self::Output {
+	fn bitxor(self, rhs: T) -> Self::Output {
 		&self ^ rhs
 	}
 }
