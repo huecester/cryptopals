@@ -22,7 +22,7 @@ const NON_GRAPHIC_PENALTY: i32 = -100000;
 
 pub type Guess = (Data, i32);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Data {
 	bytes: Vec<u8>,
 }
@@ -36,8 +36,7 @@ impl Data {
 		let bytes: Vec<u8> = self.bytes
 			.chunks_exact(16)
 			.fold((vec![], iv), |(mut blocks, xor), block| {
-				let block = xor ^ block;
-				let mut block = GenericArray::clone_from_slice(&block.bytes[0..16]);
+				let mut block = GenericArray::clone_from_slice(&(xor ^ block).bytes[0..16]);
 				cipher.encrypt_block(&mut block);
 				let block = Self::from(block.to_vec());
 				blocks.push(block.clone());
@@ -220,14 +219,6 @@ impl Data {
 	}
 }
 
-impl<T> From<T> for Data where T: Into<Vec<u8>> {
-	fn from(data: T) -> Self {
-		Self {
-			bytes: data.into(),
-		}
-	}
-}
-
 impl<T> BitXor<T> for &Data where T: Into<Data> {
 	type Output = Data;
 
@@ -250,5 +241,13 @@ impl<T> BitXor<T> for Data where T: Into<Data> {
 
 	fn bitxor(self, rhs: T) -> Self::Output {
 		&self ^ rhs
+	}
+}
+
+impl<T> From<T> for Data where T: Into<Vec<u8>> {
+	fn from(data: T) -> Self {
+		Self {
+			bytes: data.into(),
+		}
 	}
 }

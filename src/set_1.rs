@@ -27,7 +27,7 @@ fn detect_aes_128_ecb(data: &[Data]) -> &Data {
 #[test]
 fn challenge_1() {
 	let data = Data::from_hex("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d");
-	assert_eq!("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t", data.as_b64());
+	assert_eq!(Data::from_b64("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t"), data);
 }
 
 #[test]
@@ -35,14 +35,14 @@ fn challenge_2() {
 	let data1 = Data::from_hex("1c0111001f010100061a024b53535009181c");
 	let data2 = Data::from_hex("686974207468652062756c6c277320657965");
 	println!("{} {}", data1.len(), data2.len());
-	assert_eq!("746865206b696420646f6e277420706c6179", (data1 ^ data2).as_hex());
+	assert_eq!(Data::from_hex("746865206b696420646f6e277420706c6179"), data1 ^ data2);
 }
 
 #[test]
 fn challenge_3() {
 	let data = Data::from_hex("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736");
 	let guess = data.guess_single_byte_xor();
-	assert_eq!("Cooking MC's like a pound of bacon", guess.0.as_str().unwrap());
+	assert_eq!(Data::from("Cooking MC's like a pound of bacon"), guess.0);
 }
 
 #[test]
@@ -60,15 +60,15 @@ fn challenge_4() {
 		});
 	let guess = (guess.0.unwrap(), guess.1);
 
-	assert_eq!("Now that the party is jumping\n", guess.0.as_str().unwrap());
+	assert_eq!(Data::from("Now that the party is jumping\n"), guess.0);
 }
 
 #[test]
 fn challenge_5() {
 	let data = Data::from("Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal");
 	assert_eq!(
-		"0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f",
-		(data ^ "ICE").as_hex()
+		Data::from_hex("0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"),
+		data ^ "ICE"
 	)
 }
 
@@ -78,7 +78,7 @@ fn challenge_6() {
 
 	let raw_data = read_to_string("res/1/6.txt").unwrap().replace('\n', "");
 	let data = Data::from_b64(&raw_data);
-	assert_eq!("I'm back and I'm ringin' the bell 
+	assert_eq!(Data::from("I'm back and I'm ringin' the bell 
 A rockin' on the mike while the fly girls yell 
 In ecstasy in the back of me 
 Well that's my DJ Deshay cuttin' all them Z's 
@@ -157,14 +157,14 @@ Play that funky music white boy you say it, say it
 Play that funky music A little louder now 
 Play that funky music, white boy Come on, Come on, Come on 
 Play that funky music 
-", data.guess_repeating_key_xor().as_str().unwrap());
+"), data.guess_repeating_key_xor());
 }
 
 #[test]
 fn challenge_7() {
 	let ciphertext = Data::from_b64(&read_to_string("res/1/7.txt").unwrap().replace('\n', ""));
 	let plaintext = ciphertext.aes_128_ecb_decrypt("YELLOW SUBMARINE");
-	assert_eq!("I'm back and I'm ringin' the bell 
+	assert_eq!(Data::from("I'm back and I'm ringin' the bell 
 A rockin' on the mike while the fly girls yell 
 In ecstasy in the back of me 
 Well that's my DJ Deshay cuttin' all them Z's 
@@ -243,7 +243,7 @@ Play that funky music white boy you say it, say it
 Play that funky music A little louder now 
 Play that funky music, white boy Come on, Come on, Come on 
 Play that funky music 
-\u{4}\u{4}\u{4}\u{4}", plaintext.as_str().unwrap());
+\u{4}\u{4}\u{4}\u{4}"), plaintext);
 }
 
 #[test]
@@ -251,7 +251,7 @@ fn challenge_8() {
 	let file = read_to_string("res/1/8.txt").unwrap();
 	let data: Vec<_> = file.split('\n').map(|line| Data::from_hex(line.trim())).collect();
 	assert_eq!(
-		"d880619740a8a19b7840a8a31c810a3d08649af70dc06f4fd5d2d69c744cd283e2dd052f6b641dbf9d11b0348542bb5708649af70dc06f4fd5d2d69c744cd2839475c9dfdbc1d46597949d9c7e82bf5a08649af70dc06f4fd5d2d69c744cd28397a93eab8d6aecd566489154789a6b0308649af70dc06f4fd5d2d69c744cd283d403180c98c8f6db1f2a3f9c4040deb0ab51b29933f2c123c58386b06fba186a",
-		detect_aes_128_ecb(&data).as_hex()
+		&Data::from_hex("d880619740a8a19b7840a8a31c810a3d08649af70dc06f4fd5d2d69c744cd283e2dd052f6b641dbf9d11b0348542bb5708649af70dc06f4fd5d2d69c744cd2839475c9dfdbc1d46597949d9c7e82bf5a08649af70dc06f4fd5d2d69c744cd28397a93eab8d6aecd566489154789a6b0308649af70dc06f4fd5d2d69c744cd283d403180c98c8f6db1f2a3f9c4040deb0ab51b29933f2c123c58386b06fba186a"),
+		detect_aes_128_ecb(&data)
 	);
 }

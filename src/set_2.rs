@@ -4,8 +4,8 @@ use crate::Data;
 #[test]
 fn challenge_9() {
 	assert_eq!(
-		Data::from("YELLOW SUBMARINE").pkcs7_pad(20).as_str().unwrap(),
-		"YELLOW SUBMARINE\x04\x04\x04\x04"
+		Data::from("YELLOW SUBMARINE").pkcs7_pad(20),
+		&Data::from("YELLOW SUBMARINE\x04\x04\x04\x04")
 	);
 }
 
@@ -92,14 +92,14 @@ Play that funky music, white boy Come on, Come on, Come on
 Play that funky music 
 \u{4}\u{4}\u{4}\u{4}");
 	let ciphertext = plaintext.aes_128_ecb_encrypt("YELLOW SUBMARINE");
-	assert_eq!(read_to_string("res/1/7.txt").unwrap().replace('\n', ""), ciphertext.as_b64());
+	assert_eq!(Data::from_b64(&read_to_string("res/1/7.txt").unwrap().replace('\n', "")), ciphertext);
 }
 
 #[test]
 fn challenge_10() {
 	let ciphertext = Data::from_b64(&read_to_string("res/2/10.txt").unwrap().replace('\n', ""));
 	let plaintext = ciphertext.aes_128_cbc_decrypt("YELLOW SUBMARINE", [0; 16]);
-	assert_eq!("unky music 
+	assert_eq!(Data::from("unky music 
 \u{4}\u{4}\u{4}\u{4} on 
 Play that fn, Come on, Comewhite boy Come oat funky music, der now 
 Play thsic A little louay that funky muy it, say it 
@@ -178,7 +178,7 @@ Vanill the girlies goiHittin' hard and' all them Z's
 DJ Deshay cuttin
 Well that's my  the back of me l 
 In ecstasy inhe fly girls yelthe mike while tl 
-A rockin' on  ringin' the belI'm back and I'm", plaintext.as_str().unwrap());
+A rockin' on  ringin' the belI'm back and I'm"), plaintext);
 }
 
 #[test]
@@ -264,5 +264,5 @@ Well that's my  the back of me l
 In ecstasy inhe fly girls yelthe mike while tl 
 A rockin' on  ringin' the belI'm back and I'm");
 	let ciphertext = plaintext.aes_128_cbc_encrypt("YELLOW SUBMARINE", [0; 16]);
-	assert_eq!(read_to_string("res/2/10.txt").unwrap().replace('\n', ""), ciphertext.as_b64());
+	assert_eq!(Data::from_b64(&read_to_string("res/2/10.txt").unwrap().replace('\n', "")), ciphertext);
 }
