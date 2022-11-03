@@ -10,9 +10,11 @@ use tables::FREQUENCIES;
 use types::Result;
 
 use aes::{
-	Aes128,
+	Aes128Dec,
+	Aes128Enc,
 	cipher::{
 		BlockDecrypt,
+		BlockEncrypt,
 		KeyInit,
 		generic_array::GenericArray,
 	},
@@ -28,9 +30,20 @@ pub struct Data {
 }
 
 impl Data {
+	pub fn aes_128_ecb_encrypt(&self, key: impl Into<Data>) -> Data {
+		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
+		let cipher = Aes128Enc::new(&key);
+
+		let mut blocks: Vec<_> = (0..self.bytes.len()).step_by(16)
+			.map(|i| GenericArray::clone_from_slice(&self.bytes[i..i+16]))
+			.collect();
+		cipher.encrypt_blocks(&mut blocks);
+		Data::from(blocks.iter().flatten().copied().collect::<Vec<u8>>())
+	}
+
 	pub fn aes_128_ecb_decrypt(&self, key: impl Into<Data>) -> Data {
 		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
-		let cipher = Aes128::new(&key);
+		let cipher = Aes128Dec::new(&key);
 
 		let mut blocks: Vec<_> = (0..self.bytes.len()).step_by(16)
 			.map(|i| GenericArray::clone_from_slice(&self.bytes[i..i+16]))
