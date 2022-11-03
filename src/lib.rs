@@ -142,20 +142,16 @@ impl Data {
 				)
 	}
 
-	pub fn from_hex(data: &str) -> Result<Self> {
-		Ok(
-			Self {
-				bytes: hex::decode(data)?,
-			}
-		)
+	pub fn from_hex(data: &str) -> Self {
+		Self {
+			bytes: hex::decode(data).unwrap(),
+		}
 	}
 
-	pub fn from_b64(data: &str) -> Result<Self> {
-		Ok(
-			Self {
-				bytes: base64::decode(data)?,
-			}
-		)
+	pub fn from_b64(data: &str) -> Self {
+		Self {
+			bytes: base64::decode(data).unwrap(),
+		}
 	}
 
 	pub fn as_hex(&self) -> String {
