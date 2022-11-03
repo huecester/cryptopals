@@ -28,10 +28,33 @@ pub struct Data {
 }
 
 impl Data {
-	pub fn aes_128_cbc_decrypt(&self, key: impl Into<Self>, iv: impl Into<Self>) -> Self {
+	pub fn aes_128_cbc_encrypt(&self, key: impl Into<Self>, iv: impl Into<Vec<u8>>) -> Self {
+		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
+		let cipher = Aes128Enc::new(&key);
+		let iv = Data::from(&iv.into()[0..16]);
+
+		let bytes: Vec<u8> = self.bytes
+			.chunks_exact(16)
+			.fold((vec![], iv), |(mut blocks, xor), block| {
+				let block = xor ^ block;
+				let mut block = GenericArray::clone_from_slice(&block.bytes[0..16]);
+				cipher.encrypt_block(&mut block);
+				let block = Self::from(block.to_vec());
+				blocks.push(block.clone());
+				(blocks, block)
+			})
+			.0
+			.iter()
+			.flat_map(|data| data.bytes.clone())
+			.collect();
+
+		Self::from(bytes)
+	}
+
+	pub fn aes_128_cbc_decrypt(&self, key: impl Into<Self>, iv: impl Into<Vec<u8>>) -> Self {
 		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
 		let cipher = Aes128Dec::new(&key);
-		let iv = iv.into();
+		let iv = Data::from(&iv.into()[0..16]);
 		let xor_data = vec![
 			vec![iv],
 			self.bytes.chunks_exact(16).map(Self::from).collect(),
@@ -129,14 +152,14 @@ impl Data {
 
 	pub fn guess_single_byte_xor(&self) -> Guess {
 		let guess: (Option<Self>, i32) = (u8::MIN..=u8::MAX)
-			.fold((None, 0), |acc, byte| {
+			.fold((None, 0), |(acc_guess, acc_score), byte| {
 				let byte = Self::from(vec![byte]);
 				let guess = self ^ byte;
 				let score = guess.score();
-				if acc.0.is_none() || score > acc.1 {
+				if acc_guess.is_none() || score > acc_score {
 					(Some(guess), score)
 				} else {
-					acc
+					(acc_guess, acc_score)
 				}
 			});
 

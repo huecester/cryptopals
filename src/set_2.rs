@@ -98,7 +98,7 @@ Play that funky music
 #[test]
 fn challenge_10() {
 	let ciphertext = Data::from_b64(&read_to_string("res/2/10.txt").unwrap().replace('\n', ""));
-	let plaintext = ciphertext.aes_128_cbc_decrypt("YELLOW SUBMARINE", [0u8; 16]);
+	let plaintext = ciphertext.aes_128_cbc_decrypt("YELLOW SUBMARINE", [0; 16]);
 	assert_eq!("unky music 
 \u{4}\u{4}\u{4}\u{4} on 
 Play that fn, Come on, Comewhite boy Come oat funky music, der now 
@@ -179,4 +179,90 @@ DJ Deshay cuttin
 Well that's my  the back of me l 
 In ecstasy inhe fly girls yelthe mike while tl 
 A rockin' on  ringin' the belI'm back and I'm", plaintext.as_str().unwrap());
+}
+
+#[test]
+fn aes_128_cbc_encrypt_test() {
+	let plaintext = Data::from("unky music 
+\u{4}\u{4}\u{4}\u{4} on 
+Play that fn, Come on, Comewhite boy Come oat funky music, der now 
+Play thsic A little louay that funky muy it, say it 
+Plwhite boy you sahat funky music  me hear 
+Play ton, Come on, letunky music Come e. 
+
+Play that fusic till you dilay that funky mand boogie and py, go 
+Lay down boy, go white bo music Go white 
+play that funkygo white boy go , go white boy,  funky music SaySay -- Play thating this song 
+
+ everybody and song 
+So come on,, you're dead wr I was weak, BoyYou thought thatime, anywhere 
+
+attle me -- Anytare 
+You wanna band don't be squo come up close dance to cure 
+Sor, Ice, do the t the witch doctk and endure 
+Lefit, so step bacu're pitchin' a  call me Dad 
+Yo to ICE, You canhe lyrics belongbe sad 
+'Cause te mad and don't l it 
+So don't bo, so I can smels gettin' hot, sl it 
+Your body'O! and I can teleakenin' fast, Yyear. 
+
+You're w You, '90 is my 
+'89 in my time!end me your ear  step down and light have it 
+Sought that 
+You me once and I thoc 
+You trapped mht like a fanati I'm hangin' tigwn 
+Sparkamatic, just gettin' doin' on mine, I'mThere's no tripphittin' ground 
+ed by the bases man Nazi 
+Startl hard like a Gere. 
+
+Steppin' so by the VIP possow you're amazedhis here song 
+Nhetto groovin' tll through the gto sing along 
+Agroovin' trying lue 
+Movin' and in' like Crazy G freaks are jock 
+'Cause why theeople are buyin'ellin' and you pVanilla Ice is srl stop cryin' 
+op trying and giino 
+So punks ststagger like a wxicating so you ke a rhino 
+Intom comin' hard liIce yep, yep, I' 
+
+VIP. Vanilla e on and say it!ith a spoon! Comeat 
+Spaghetti wy, you probably  my God, homebodirls 
+Soon -- Ohe, no time, no gnowhere, no placr. 
+
+You'll get f you're a loaferfect 
+But not iractice makes peOver and over, po get my style 
+ll keep tryin' to hang 
+But you'', You can try there's no denyinon to Delilah 
+Te Samson -- Samsr wet. 
+
+I'm likgirl and make he can take a fly t you can bet 
+In effect and thalidocious 
+I'm afragilisticexpiacious 
+Supercalae my rhymes atrogood luck, I lik some wood 
+For 3 Yo -- Knock onsound good 
+1-2- up and make it So I can funk itt play through 
+d so let the bea
+It's off my heawanna listen to Yea the one ya' ay 
+
+Stage 2 -- an any kid n' pl dance better this ok 
+And I canove me and that lies sa y they ln phase 
+The gired 
+I'm in my owno dissin' allow stage 
+There's se I control the
+So get off 'cauu starin' at me mn, then 
+Why yo don't give a dal be 
+And if you's the way I wilooth 'cause thatVanilla Go! 
+
+Smide yellin', Go posse's to the sconcepts go 
+My it flow, let my in 
+To just let  mouth and I beg 
+It controls my my drug kick iny. 
+
+I'm lettin' man I'm not laza's on the mike,n' crazy 
+Vanill the girlies goiHittin' hard and' all them Z's 
+DJ Deshay cuttin
+Well that's my  the back of me l 
+In ecstasy inhe fly girls yelthe mike while tl 
+A rockin' on  ringin' the belI'm back and I'm");
+	let ciphertext = plaintext.aes_128_cbc_encrypt("YELLOW SUBMARINE", [0; 16]);
+	assert_eq!(read_to_string("res/2/10.txt").unwrap().replace('\n', ""), ciphertext.as_b64());
 }
