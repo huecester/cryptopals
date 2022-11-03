@@ -3,7 +3,7 @@ mod tables;
 #[cfg(test)] mod set_1;
 #[cfg(test)] mod set_2;
 
-use std::ops::BitXor;
+use std::{ops::BitXor, collections::HashMap};
 
 use tables::FREQUENCIES;
 
@@ -22,12 +22,42 @@ const NON_GRAPHIC_PENALTY: i32 = -100000;
 
 pub type Guess = (Data, i32);
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum AesMode {
+	CBC,
+	ECB,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Data {
 	bytes: Vec<u8>,
 }
 
 impl Data {
+	pub fn aes_128_ecb_cbc_oracle(&self) -> AesMode {
+		if self.aes_128_ecb_percent() > 0 {
+			AesMode::ECB
+		} else {
+			AesMode::CBC
+		}
+	}
+
+	pub fn aes_128_ecb_percent(&self) -> usize {
+		let reps = self.bytes
+			.chunks_exact(16)
+			.fold(HashMap::<&[u8], usize>::new(), |mut map, block| {
+				if let Some(val) = map.get(block) {
+					map.insert(block, val + 1);
+				} else {
+					map.insert(block, 0);
+				}
+				map
+			})
+			.values()
+			.sum::<usize>();
+		(reps * 1000) / self.bytes.chunks_exact(16).count()
+	}
+
 	pub fn aes_128_cbc_encrypt(&self, key: impl Into<Self>, iv: impl Into<Vec<u8>>) -> Self {
 		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
 		let cipher = Aes128Enc::new(&key);
@@ -77,8 +107,8 @@ impl Data {
 		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
 		let cipher = Aes128Enc::new(&key);
 
-		let mut blocks: Vec<_> = (0..self.bytes.len()).step_by(16)
-			.map(|i| GenericArray::clone_from_slice(&self.bytes[i..i+16]))
+		let mut blocks: Vec<_> = self.bytes.chunks_exact(16)
+			.map(|chunk| GenericArray::clone_from_slice(chunk))
 			.collect();
 		cipher.encrypt_blocks(&mut blocks);
 		Self::from(blocks.iter().flatten().copied().collect::<Vec<u8>>())
@@ -88,8 +118,8 @@ impl Data {
 		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
 		let cipher = Aes128Dec::new(&key);
 
-		let mut blocks: Vec<_> = (0..self.bytes.len()).step_by(16)
-			.map(|i| GenericArray::clone_from_slice(&self.bytes[i..i+16]))
+		let mut blocks: Vec<_> = self.bytes.chunks_exact(16)
+			.map(|chunk| GenericArray::clone_from_slice(chunk))
 			.collect();
 		cipher.decrypt_blocks(&mut blocks);
 		Self::from(blocks.iter().flatten().copied().collect::<Vec<u8>>())
