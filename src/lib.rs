@@ -39,12 +39,12 @@ impl Data {
 				let mut block = GenericArray::clone_from_slice(&(xor ^ block).bytes[0..16]);
 				cipher.encrypt_block(&mut block);
 				let block = Self::from(block.to_vec());
-				blocks.push(block.clone());
+				blocks.push(block.bytes.clone());
 				(blocks, block)
 			})
 			.0
-			.iter()
-			.flat_map(|data| data.bytes.clone())
+			.into_iter()
+			.flatten()
 			.collect();
 
 		Self::from(bytes)
@@ -61,12 +61,11 @@ impl Data {
 
 		let bytes: Vec<u8> = self.bytes
 			.chunks_exact(16)
-			.rev()
-			.zip(xor_data.iter().flatten().rev().skip(1))
-			.map(|(block, next_block)| {
+			.zip(xor_data.iter().flatten())
+			.map(|(block, xor)| {
 				let mut block = GenericArray::clone_from_slice(&block[0..16]);
 				cipher.decrypt_block(&mut block);
-				next_block ^ block.to_vec()
+				xor ^ block.to_vec()
 			})
 			.flat_map(|data| data.bytes)
 			.collect();
