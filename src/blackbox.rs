@@ -1,3 +1,4 @@
+use std::{collections::HashMap, ops::Index};
 use crate::{
 	Data,
 	functions::random_key,
@@ -15,5 +16,28 @@ impl Aes128EcbBlackBox {
 	pub fn encrypt(&self, input: impl Into<Data>) -> Data {
 		let input: Data = input.into() + Data::from_b64(Self::HIDDEN_STRING);
 		input.pkcs7_pad(16).aes_128_ecb_encrypt(self.0)
+	}
+}
+
+pub struct UrlParams(HashMap<String, String>);
+
+impl UrlParams {
+	pub fn data(&self) -> &HashMap<String, String> {
+		&self.0
+	}
+}
+
+impl<T> From<T> for UrlParams where T: ToString {
+	fn from(data: T) -> Self {
+		let mut map = HashMap::new();
+		data.to_string()
+			.split('&')
+			.map(|v| {
+				let i = v.match_indices('=').next().expect("Malformed input, expected `=`.").0;
+				(&v[..i], &v[i + 1..])
+			})
+			.for_each(|(k, v)| { map.insert(k.to_string(), v.to_string()); });
+
+		Self(map)
 	}
 }

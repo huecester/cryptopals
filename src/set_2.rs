@@ -2,7 +2,7 @@ use std::fs::read_to_string;
 use crate::{
 	AesMode,
 	Data,
-	blackbox::Aes128EcbBlackBox,
+	blackbox::{Aes128EcbBlackBox, UrlParams},
 	functions::random_encrypt,
 };
 
@@ -110,4 +110,15 @@ fn challenge_12() {
 	}
 
 	assert_eq!(Data::from_b64(Aes128EcbBlackBox::HIDDEN_STRING), Data::from(known_hidden_string));
+}
+
+#[test]
+fn challenge_13() {
+	{
+		let params = UrlParams::from("foo=bar&baz=qux&zap=zazzle");
+		let data = params.data();
+		assert_eq!("bar", data.get("foo").unwrap());
+		assert_eq!("qux", data.get("baz").unwrap());
+		assert_eq!("zazzle", data.get("zap").unwrap());
+	}
 }
