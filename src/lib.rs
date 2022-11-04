@@ -3,7 +3,10 @@ mod tables;
 #[cfg(test)] mod set_1;
 #[cfg(test)] mod set_2;
 
-use std::{ops::BitXor, collections::HashMap};
+use std::{
+	ops::{Add, BitXor},
+	collections::HashMap,
+};
 
 use tables::FREQUENCIES;
 
@@ -59,14 +62,14 @@ impl Data {
 	}
 
 	pub fn aes_128_cbc_encrypt(&self, key: impl Into<Self>, iv: impl Into<Vec<u8>>) -> Self {
-		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
+		let key = GenericArray::clone_from_slice(&key.into().bytes[..16]);
 		let cipher = Aes128Enc::new(&key);
-		let iv = Data::from(&iv.into()[0..16]);
+		let iv = Data::from(&iv.into()[..16]);
 
 		let bytes: Vec<u8> = self.bytes
 			.chunks_exact(16)
 			.fold((vec![], iv), |(mut blocks, xor), block| {
-				let mut block = GenericArray::clone_from_slice(&(xor ^ block).bytes[0..16]);
+				let mut block = GenericArray::clone_from_slice(&(xor ^ block).bytes[..16]);
 				cipher.encrypt_block(&mut block);
 				let block = Self::from(block.to_vec());
 				blocks.push(block.bytes.clone());
@@ -81,9 +84,9 @@ impl Data {
 	}
 
 	pub fn aes_128_cbc_decrypt(&self, key: impl Into<Self>, iv: impl Into<Vec<u8>>) -> Self {
-		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
+		let key = GenericArray::clone_from_slice(&key.into().bytes[..16]);
 		let cipher = Aes128Dec::new(&key);
-		let iv = Data::from(&iv.into()[0..16]);
+		let iv = Data::from(&iv.into()[..16]);
 		let xor_data = vec![
 			vec![iv],
 			self.bytes.chunks_exact(16).map(Self::from).collect(),
@@ -93,7 +96,7 @@ impl Data {
 			.chunks_exact(16)
 			.zip(xor_data.iter().flatten())
 			.map(|(block, xor)| {
-				let mut block = GenericArray::clone_from_slice(&block[0..16]);
+				let mut block = GenericArray::clone_from_slice(&block[..16]);
 				cipher.decrypt_block(&mut block);
 				xor ^ block.to_vec()
 			})
@@ -104,7 +107,7 @@ impl Data {
 	}
 
 	pub fn aes_128_ecb_encrypt(&self, key: impl Into<Self>) -> Self {
-		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
+		let key = GenericArray::clone_from_slice(&key.into().bytes[..16]);
 		let cipher = Aes128Enc::new(&key);
 
 		let mut blocks: Vec<_> = self.bytes.chunks_exact(16)
@@ -115,7 +118,7 @@ impl Data {
 	}
 
 	pub fn aes_128_ecb_decrypt(&self, key: impl Into<Self>) -> Self {
-		let key = GenericArray::clone_from_slice(&key.into().bytes[0..16]);
+		let key = GenericArray::clone_from_slice(&key.into().bytes[..16]);
 		let cipher = Aes128Dec::new(&key);
 
 		let mut blocks: Vec<_> = self.bytes.chunks_exact(16)
@@ -125,10 +128,14 @@ impl Data {
 		Self::from(blocks.iter().flatten().copied().collect::<Vec<u8>>())
 	}
 
-	fn pkcs7_pad(&mut self, n: u8) -> &Self {
+	fn pkcs7_pad(&self, n: u8) -> Self {
 		let padding = n - (self.len() % (n as usize)) as u8;
-		self.bytes.extend(std::iter::repeat(padding).take(padding as usize));
-		self
+		let mut bytes = self.bytes.clone();
+		bytes.extend(std::iter::repeat(padding).take(padding as usize));
+
+		Self {
+			bytes,
+		}
 	}
 
 	pub fn guess_repeating_key_xor(&self) -> Self {
@@ -245,6 +252,28 @@ impl Data {
 
 	pub fn is_empty(&self) -> bool {
 		self.bytes.is_empty()
+	}
+}
+
+impl<T> Add<T> for &Data where T: Into<Data> {
+	type Output = Data;
+
+	fn add(self, rhs: T) -> Self::Output {
+		let mut bytes = self.bytes.clone();
+		let mut other = rhs.into().bytes.clone();
+		bytes.append(&mut other);
+
+		Self::Output {
+			bytes,
+		}
+	}
+}
+
+impl<T> Add<T> for Data where T: Into<Data> {
+	type Output = Self;
+
+	fn add(self, rhs: T) -> Self::Output {
+		&self + rhs
 	}
 }
 

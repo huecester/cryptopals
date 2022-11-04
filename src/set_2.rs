@@ -3,6 +3,12 @@ use rand::prelude::*;
 
 use crate::{AesMode, Data};
 
+fn random_key(rand: &mut ThreadRng) -> [u8; 16] {
+	let mut key = [0u8; 16];
+	rand.fill_bytes(&mut key);
+	key
+}
+
 fn random_encrypt(plaintext: impl Into<Vec<u8>>, mode: Option<AesMode>) -> (Data, AesMode) {
 	let mut rand = rand::thread_rng();
 
@@ -15,11 +21,9 @@ fn random_encrypt(plaintext: impl Into<Vec<u8>>, mode: Option<AesMode>) -> (Data
 	for _ in 0..suffix_count {
 		plaintext.push(rand.gen());
 	}
-	let mut plaintext = Data::from(plaintext);
-	plaintext.pkcs7_pad(16);
+	let plaintext = Data::from(plaintext).pkcs7_pad(16);
 
-	let mut key = [0u8; 16];
-	rand.fill_bytes(&mut key);
+	let key = random_key(&mut rand);
 
 	if let Some(mode) = mode {
 		match mode {
@@ -43,11 +47,26 @@ fn random_encrypt(plaintext: impl Into<Vec<u8>>, mode: Option<AesMode>) -> (Data
 	}
 }
 
+struct Aes128EcbBlackBox([u8; 16]);
+
+impl Aes128EcbBlackBox {
+	const HIDDEN_STRING: &'static str = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK";
+
+	fn new() -> Self {
+		Self(random_key(&mut rand::thread_rng()))
+	}
+
+	fn encrypt(&self, input: impl Into<Data>) -> Data {
+		let input: Data = input.into() + Data::from_b64(Self::HIDDEN_STRING);
+		input.pkcs7_pad(16).aes_128_ecb_encrypt(self.0)
+	}
+}
+
 #[test]
 fn challenge_9() {
 	assert_eq!(
 		Data::from("YELLOW SUBMARINE").pkcs7_pad(20),
-		&Data::from("YELLOW SUBMARINE\x04\x04\x04\x04")
+		Data::from("YELLOW SUBMARINE\x04\x04\x04\x04")
 	);
 }
 
@@ -96,4 +115,55 @@ fn challenge_11() {
 			}
 		}
 	}
+}
+
+#[test]
+fn challenge_12() {
+	let black_box = Aes128EcbBlackBox::new();
+
+	let block_size = {
+		let mut i = 1;
+		loop {
+			let output = black_box.encrypt("A".repeat(i * 2));
+			if output.bytes[..i] == output.bytes[i..i*2] { break; }
+			i += 1;
+		}
+		i
+	};
+
+	assert_eq!(AesMode::ECB, black_box.encrypt("A".repeat(block_size * 4)).aes_128_ecb_cbc_oracle());
+
+	let hidden_string_length = {
+		let ciphertext_with_padding_length = black_box.encrypt("").len();
+		let mut padding_length = 1;
+		while black_box.encrypt("A".repeat(padding_length)).len() == ciphertext_with_padding_length {
+			padding_length += 1;
+		}
+		ciphertext_with_padding_length - padding_length
+	};
+	let rounded_hidden_string_length = ((hidden_string_length / block_size) + 1) * block_size;
+
+	let mut known_hidden_string = String::from("");
+	'outer: for i in (0..=rounded_hidden_string_length - 1).rev() {
+		let padding = "A".repeat(i);
+		let key = &black_box.encrypt(&padding[..]).bytes[..rounded_hidden_string_length];
+
+		for b in u8::MIN..=u8::MAX {
+			let b = &(b as char).to_string();
+
+			let test_string = format!("{}{}{}", &padding, &known_hidden_string, b);
+			let test = &black_box.encrypt(test_string).bytes[..rounded_hidden_string_length];
+
+			if test == key {
+				known_hidden_string += b;
+				if known_hidden_string.len() >= hidden_string_length {
+					break 'outer;
+				} else {
+					continue 'outer;
+				}
+			}
+		}
+	}
+
+	assert_eq!(Data::from_b64(Aes128EcbBlackBox::HIDDEN_STRING), Data::from(known_hidden_string));
 }
