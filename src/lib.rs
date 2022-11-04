@@ -63,8 +63,8 @@ impl Data {
 		(reps * 1000) / self.bytes.chunks_exact(16).count()
 	}
 
-	pub fn aes_128_cbc_encrypt(&self, key: impl Into<Self>, iv: impl Into<Vec<u8>>) -> Self {
-		let key = GenericArray::clone_from_slice(&key.into().bytes[..16]);
+	pub fn aes_128_cbc_encrypt(&self, key: impl Into<Vec<u8>>, iv: impl Into<Vec<u8>>) -> Self {
+		let key = GenericArray::clone_from_slice(&key.into()[..16]);
 		let cipher = Aes128Enc::new(&key);
 		let iv = Data::from(&iv.into()[..16]);
 
@@ -85,8 +85,8 @@ impl Data {
 		Self::from(bytes)
 	}
 
-	pub fn aes_128_cbc_decrypt(&self, key: impl Into<Self>, iv: impl Into<Vec<u8>>) -> Self {
-		let key = GenericArray::clone_from_slice(&key.into().bytes[..16]);
+	pub fn aes_128_cbc_decrypt(&self, key: impl Into<Vec<u8>>, iv: impl Into<Vec<u8>>) -> Self {
+		let key = GenericArray::clone_from_slice(&key.into()[..16]);
 		let cipher = Aes128Dec::new(&key);
 		let iv = Data::from(&iv.into()[..16]);
 		let xor_data = vec![
@@ -108,8 +108,8 @@ impl Data {
 		Self::from(bytes)
 	}
 
-	pub fn aes_128_ecb_encrypt(&self, key: impl Into<Self>) -> Self {
-		let key = GenericArray::clone_from_slice(&key.into().bytes[..16]);
+	pub fn aes_128_ecb_encrypt(&self, key: impl Into<Vec<u8>>) -> Self {
+		let key = GenericArray::clone_from_slice(&key.into()[..16]);
 		let cipher = Aes128Enc::new(&key);
 
 		let mut blocks: Vec<_> = self.bytes.chunks_exact(16)
@@ -119,8 +119,8 @@ impl Data {
 		Self::from(blocks.iter().flatten().copied().collect::<Vec<u8>>())
 	}
 
-	pub fn aes_128_ecb_decrypt(&self, key: impl Into<Self>) -> Self {
-		let key = GenericArray::clone_from_slice(&key.into().bytes[..16]);
+	pub fn aes_128_ecb_decrypt(&self, key: impl Into<Vec<u8>>) -> Self {
+		let key = GenericArray::clone_from_slice(&key.into()[..16]);
 		let cipher = Aes128Dec::new(&key);
 
 		let mut blocks: Vec<_> = self.bytes.chunks_exact(16)
@@ -138,6 +138,14 @@ impl Data {
 		Self {
 			bytes,
 		}
+	}
+
+	#[cfg(test)] fn pkcs7_unpad(&self) -> Self {
+		let padding = self.bytes.last().unwrap();
+		if !self.bytes.iter().rev().take(*padding as usize).all(|b| b == padding) {
+			panic!("Trying to undo PKCS#7 padding on non-PKCS#7 padded data.");
+		}
+		Self::from(&self.bytes[..self.bytes.len() - *padding as usize])
 	}
 
 	pub fn guess_repeating_key_xor(&self) -> Self {
@@ -180,10 +188,10 @@ impl Data {
 		Self::from(res)
 	}
 
-	fn hamming_distance(&self, rhs: impl Into<Self>) -> usize {
+	fn hamming_distance(&self, rhs: impl Into<Vec<u8>>) -> usize {
 		self.bytes
 			.iter()
-			.zip(rhs.into().bytes.iter())
+			.zip(rhs.into().iter())
 			.fold(0, |acc, (lhs, rhs)| acc + (lhs ^ rhs).count_ones() as usize)
 	}
 

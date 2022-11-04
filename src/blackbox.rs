@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Index};
+use std::collections::HashMap;
 use crate::{
 	Data,
 	functions::random_key,
@@ -19,11 +19,36 @@ impl Aes128EcbBlackBox {
 	}
 }
 
-pub struct UrlParams(HashMap<String, String>);
+#[derive(Clone, Debug, PartialEq)]
+pub struct UrlParams(HashMap<String, String>, [u8; 16]);
 
 impl UrlParams {
-	pub fn data(&self) -> &HashMap<String, String> {
-		&self.0
+	pub fn profile_for(email: &str) -> Self {
+		let email = email.replace('=', "").replace('&', "");
+		let uid: usize = rand::random();
+		Self::from(format!("email={email}&uid={uid}&role=user"))
+	}
+
+	pub fn encrypt(&self) -> Data {
+		let params = self.0.iter()
+			.map(|(k, v)| format!("{k}={v}"))
+			.collect::<Vec<String>>()
+			.join("&");
+		Data::from(params).pkcs7_pad(16).aes_128_ecb_encrypt(self.1)
+	}
+
+	pub fn decrypt(&mut self, data: impl Into<Data>) -> &Self {
+		let new_data = Self::from(data.into()
+			.aes_128_ecb_decrypt(self.1)
+			.pkcs7_unpad()
+			.as_str()
+			.unwrap());
+		self.0 = new_data.0;
+		self
+	}
+
+	pub fn get(&self, key: &str) -> &str {
+		self.0.get(key).unwrap()
 	}
 }
 
@@ -38,6 +63,6 @@ impl<T> From<T> for UrlParams where T: ToString {
 			})
 			.for_each(|(k, v)| { map.insert(k.to_string(), v.to_string()); });
 
-		Self(map)
+		Self(map, rand::random())
 	}
 }

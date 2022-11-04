@@ -62,6 +62,7 @@ fn challenge_11() {
 }
 
 #[test]
+#[ignore = "slow"]
 fn challenge_12() {
 	let black_box = Aes128EcbBlackBox::new();
 
@@ -116,9 +117,24 @@ fn challenge_12() {
 fn challenge_13() {
 	{
 		let params = UrlParams::from("foo=bar&baz=qux&zap=zazzle");
-		let data = params.data();
-		assert_eq!("bar", data.get("foo").unwrap());
-		assert_eq!("qux", data.get("baz").unwrap());
-		assert_eq!("zazzle", data.get("zap").unwrap());
+		assert_eq!("bar", params.get("foo"));
+		assert_eq!("qux", params.get("baz"));
+		assert_eq!("zazzle", params.get("zap"));
 	}
+
+	{
+		let params = UrlParams::profile_for("foo@bar.com");
+		assert_eq!("foo@bar.com", params.get("email"));
+		assert_eq!("user", params.get("role"));
+
+		let mut new_params = params.clone();
+		assert_eq!(&params, new_params.decrypt(new_params.encrypt()))
+	}
+
+	{
+		let params = UrlParams::profile_for("foo@bar.com&role=admin");
+		assert_eq!("user", params.get("role"));
+	}
+
+	todo!()
 }
