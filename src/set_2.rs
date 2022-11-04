@@ -1,66 +1,10 @@
 use std::fs::read_to_string;
-use rand::prelude::*;
-
-use crate::{AesMode, Data};
-
-fn random_key(rand: &mut ThreadRng) -> [u8; 16] {
-	let mut key = [0u8; 16];
-	rand.fill_bytes(&mut key);
-	key
-}
-
-fn random_encrypt(plaintext: impl Into<Vec<u8>>, mode: Option<AesMode>) -> (Data, AesMode) {
-	let mut rand = rand::thread_rng();
-
-	let mut plaintext = plaintext.into();
-	let prefix_count = rand.gen_range(5..=10);
-	let suffix_count = rand.gen_range(5..=10);
-	for i in 0..prefix_count {
-		plaintext.insert(i, rand.gen());
-	}
-	for _ in 0..suffix_count {
-		plaintext.push(rand.gen());
-	}
-	let plaintext = Data::from(plaintext).pkcs7_pad(16);
-
-	let key = random_key(&mut rand);
-
-	if let Some(mode) = mode {
-		match mode {
-			AesMode::ECB => (plaintext.aes_128_ecb_encrypt(key), AesMode::ECB),
-			AesMode::CBC => {
-				let mut iv = [0u8; 16];
-				rand.fill_bytes(&mut iv);
-				(plaintext.aes_128_cbc_encrypt(key, iv), AesMode::CBC)
-			},
-		}
-	} else {
-		if rand.gen_ratio(1, 2) {
-			// ECB
-			(plaintext.aes_128_ecb_encrypt(key), AesMode::ECB)
-		} else {
-			// CBC
-			let mut iv = [0u8; 16];
-			rand.fill_bytes(&mut iv);
-			(plaintext.aes_128_cbc_encrypt(key, iv), AesMode::CBC)
-		}
-	}
-}
-
-struct Aes128EcbBlackBox([u8; 16]);
-
-impl Aes128EcbBlackBox {
-	const HIDDEN_STRING: &'static str = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK";
-
-	fn new() -> Self {
-		Self(random_key(&mut rand::thread_rng()))
-	}
-
-	fn encrypt(&self, input: impl Into<Data>) -> Data {
-		let input: Data = input.into() + Data::from_b64(Self::HIDDEN_STRING);
-		input.pkcs7_pad(16).aes_128_ecb_encrypt(self.0)
-	}
-}
+use crate::{
+	AesMode,
+	Data,
+	blackbox::Aes128EcbBlackBox,
+	functions::random_encrypt,
+};
 
 #[test]
 fn challenge_9() {

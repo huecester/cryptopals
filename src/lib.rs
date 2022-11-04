@@ -1,4 +1,6 @@
 mod tables;
+#[cfg(test)] mod functions;
+#[cfg(test)] mod blackbox;
 
 #[cfg(test)] mod set_1;
 #[cfg(test)] mod set_2;
@@ -128,7 +130,7 @@ impl Data {
 		Self::from(blocks.iter().flatten().copied().collect::<Vec<u8>>())
 	}
 
-	fn pkcs7_pad(&self, n: u8) -> Self {
+	#[cfg(test)] fn pkcs7_pad(&self, n: u8) -> Self {
 		let padding = n - (self.len() % (n as usize)) as u8;
 		let mut bytes = self.bytes.clone();
 		bytes.extend(std::iter::repeat(padding).take(padding as usize));

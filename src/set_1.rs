@@ -1,17 +1,8 @@
 use std::fs::read_to_string;
-use crate::Data;
-
-fn detect_aes_128_ecb(data_slice: &[Data]) -> &Data {
-	data_slice.into_iter()
-		.fold((None, 0), |(acc_data, acc_percent), data| {
-			let percent = data.aes_128_ecb_percent();
-			if acc_data.is_none() || percent > acc_percent {
-				(Some(data), percent)
-			} else {
-				(acc_data, acc_percent)
-			}
-		}).0.unwrap()
-}
+use crate::{
+	Data,
+	functions::detect_aes_128_ecb,
+};
 
 #[test]
 fn challenge_1() {
