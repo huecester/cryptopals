@@ -1,6 +1,6 @@
 mod tables;
-#[cfg(test)] mod functions;
-#[cfg(test)] mod blackbox;
+mod functions;
+pub mod blackbox;
 
 #[cfg(test)] mod set_1;
 #[cfg(test)] mod set_2;
@@ -130,7 +130,7 @@ impl Data {
 		Self::from(blocks.iter().flatten().copied().collect::<Vec<u8>>())
 	}
 
-	#[cfg(test)] fn pkcs7_pad(&self, n: u8) -> Self {
+	fn pkcs7_pad(&self, n: u8) -> Self {
 		let padding = n - (self.len() % (n as usize)) as u8;
 		let mut bytes = self.bytes.clone();
 		bytes.extend(std::iter::repeat(padding).take(padding as usize));
@@ -140,7 +140,7 @@ impl Data {
 		}
 	}
 
-	#[cfg(test)] fn pkcs7_unpad(&self) -> Self {
+	fn pkcs7_unpad(&self) -> Self {
 		let padding = self.bytes.last().unwrap();
 		if !self.bytes.iter().rev().take(*padding as usize).all(|b| b == padding) {
 			panic!("Trying to undo PKCS#7 padding on non-PKCS#7 padded data.");
@@ -252,10 +252,6 @@ impl Data {
 		base64::encode(&self.bytes)
 	}
 
-	pub fn as_str(&self) -> Option<String> {
-		String::from_utf8(self.bytes.clone()).ok()
-	}
-
 	pub fn len(&self) -> usize {
 		self.bytes.len()
 	}
@@ -317,5 +313,11 @@ impl<T> From<T> for Data where T: Into<Vec<u8>> {
 		Self {
 			bytes: data.into(),
 		}
+	}
+}
+
+impl ToString for Data {
+	fn to_string(&self) -> String {
+		String::from_utf8(self.bytes.clone()).unwrap()
 	}
 }

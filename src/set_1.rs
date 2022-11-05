@@ -54,6 +54,7 @@ fn challenge_5() {
 }
 
 #[test]
+#[ignore = "slow"]
 fn challenge_6() {
 	assert_eq!(37, Data::from("this is a test").hamming_distance("wokka wokka!!!"));
 
