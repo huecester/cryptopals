@@ -130,8 +130,8 @@ impl Default for UrlParams {
 
 }
 
-#[cfg(test)] pub use tests::*;
-#[cfg(test)] mod tests {
+#[cfg(test)] pub use challenges::*;
+#[cfg(test)] mod challenges {
 	use super::*;
 
 	pub struct Aes128EcbBlackBox([u8; 16]);
