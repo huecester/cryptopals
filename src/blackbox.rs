@@ -14,7 +14,7 @@ pub trait BlackBox {
 		while self.encrypt("A".repeat(padding_length)).len() == ciphertext_with_padding_length {
 			padding_length += 1;
 		}
-		ciphertext_with_padding_length - (padding_length - 1)
+		ciphertext_with_padding_length - padding_length
 	}
 }
 
