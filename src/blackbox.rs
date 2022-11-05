@@ -18,7 +18,7 @@ pub trait BlackBox {
 	}
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UrlParams([u8; 16]);
 
 impl UrlParams {
@@ -29,21 +29,21 @@ impl UrlParams {
 	}
 
 	pub fn profile_for(&self, email: &str) -> Data {
-		let email = email.replace('=', "").replace('&', "");
+		let email = email.replace(['=', '&'], "");
 		let params = format!("email={email}&uid={}&role=user", Self::UID);
 		self.encrypt(params)
 	}
 
 	pub fn decrypt_profile(&self, profile: impl Into<Data>) -> HashMap<String, String> {
-		Self::parse(self.decrypt(profile))
+		Self::parse(&self.decrypt(profile))
 	}
 
 	#[cfg(test)] fn profile_for_unencrypted(email: &str) -> HashMap<String, String> {
 		let email = email.replace('=', "").replace('&', "");
-		Self::parse(format!("email={email}&uid={}&role=user", Self::UID))
+		Self::parse(&format!("email={email}&uid={}&role=user", Self::UID))
 	}
 
-	fn parse(data: impl ToString) -> HashMap<String, String> {
+	fn parse<T>(data: &T) -> HashMap<String, String> where T: ToString + ?Sized{
 		data.to_string()
 			.split('&')
 			.map(|v| {
@@ -52,7 +52,7 @@ impl UrlParams {
 					(v[..i].to_string(), v[i + 1..].to_string())
 				})
 			})
-			.filter(|v| v.is_some())
+			.filter(Option::is_some)
 			.flatten()
 			.collect()
 	}
@@ -86,6 +86,12 @@ impl BlackBox for UrlParams {
 			padding_length += 1;
 		}
 		ciphertext_with_padding_length - padding_length
+	}
+}
+
+impl Default for UrlParams {
+	fn default() -> Self {
+		Self::new()
 	}
 }
 

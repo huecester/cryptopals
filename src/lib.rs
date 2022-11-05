@@ -27,13 +27,13 @@ const NON_GRAPHIC_PENALTY: i32 = -100000;
 
 pub type Guess = (Data, i32);
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AesMode {
 	CBC,
 	ECB,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Data {
 	bytes: Vec<u8>,
 }
@@ -88,7 +88,7 @@ impl Data {
 	pub fn aes_128_cbc_decrypt(&self, key: impl Into<Vec<u8>>, iv: impl Into<Vec<u8>>) -> Self {
 		let key = GenericArray::clone_from_slice(&key.into()[..16]);
 		let cipher = Aes128Dec::new(&key);
-		let iv = Data::from(&iv.into()[..16]);
+		let iv = Self::from(&iv.into()[..16]);
 		let xor_data = vec![
 			vec![iv],
 			self.bytes.chunks_exact(16).map(Self::from).collect(),
@@ -113,7 +113,7 @@ impl Data {
 		let cipher = Aes128Enc::new(&key);
 
 		let mut blocks: Vec<_> = self.bytes.chunks_exact(16)
-			.map(|chunk| GenericArray::clone_from_slice(chunk))
+			.map(GenericArray::clone_from_slice)
 			.collect();
 		cipher.encrypt_blocks(&mut blocks);
 		Self::from(blocks.iter().flatten().copied().collect::<Vec<u8>>())
@@ -124,7 +124,7 @@ impl Data {
 		let cipher = Aes128Dec::new(&key);
 
 		let mut blocks: Vec<_> = self.bytes.chunks_exact(16)
-			.map(|chunk| GenericArray::clone_from_slice(chunk))
+			.map(GenericArray::clone_from_slice)
 			.collect();
 		cipher.decrypt_blocks(&mut blocks);
 		Self::from(blocks.iter().flatten().copied().collect::<Vec<u8>>())
@@ -142,9 +142,10 @@ impl Data {
 
 	fn pkcs7_unpad(&self) -> Self {
 		let padding = self.bytes.last().unwrap();
-		if !self.bytes.iter().rev().take(*padding as usize).all(|b| b == padding) {
-			panic!("Trying to undo PKCS#7 padding on non-PKCS#7 padded data.");
-		}
+		assert!(
+			!self.bytes.iter().rev().take(*padding as usize).all(|b| b == padding),
+			"Trying to undo PKCS#7 padding on non-PKCS#7 padded data."
+		);
 		Self::from(&self.bytes[..self.bytes.len() - *padding as usize])
 	}
 
@@ -266,7 +267,7 @@ impl<T> Add<T> for &Data where T: Into<Data> {
 
 	fn add(self, rhs: T) -> Self::Output {
 		let mut bytes = self.bytes.clone();
-		let mut other = rhs.into().bytes.clone();
+		let mut other = rhs.into().bytes;
 		bytes.append(&mut other);
 
 		Self::Output {
@@ -275,7 +276,7 @@ impl<T> Add<T> for &Data where T: Into<Data> {
 	}
 }
 
-impl<T> Add<T> for Data where T: Into<Data> {
+impl<T> Add<T> for Data where T: Into<Self> {
 	type Output = Self;
 
 	fn add(self, rhs: T) -> Self::Output {

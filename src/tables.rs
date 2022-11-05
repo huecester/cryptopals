@@ -1,6 +1,6 @@
 use phf::phf_map;
 
-pub(crate) static FREQUENCIES: phf::Map<char, i32> = phf_map! {
+pub static FREQUENCIES: phf::Map<char, i32> = phf_map! {
 	' ' => 50000,
 	'e' => 12702, 'E' => 12702, 't' =>  9056, 'T' =>  9056, 'a' =>  8167, 'A' =>  8167, 'o' =>  7507, 'O' =>  7507,
 	'i' =>  6966, 'I' =>  6966, 'n' =>  6749, 'N' =>  6749, 's' =>  6327, 'S' =>  6327, 'h' =>  6094, 'H' =>  6094,
