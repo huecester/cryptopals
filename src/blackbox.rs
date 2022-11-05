@@ -46,12 +46,7 @@ impl UrlParams {
 	fn parse<T>(data: &T) -> HashMap<String, String> where T: ToString + ?Sized{
 		data.to_string()
 			.split('&')
-			.map(|v| {
-				v.match_indices('=').next().map(|i| {
-					let i = i.0;
-					(v[..i].to_string(), v[i + 1..].to_string())
-				})
-			})
+			.map(|v| v.split_once('=').map(|s| (s.0.to_owned(), s.1.to_owned())))
 			.filter(Option::is_some)
 			.flatten()
 			.collect()
