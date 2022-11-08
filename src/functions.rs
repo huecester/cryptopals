@@ -12,7 +12,7 @@ pub fn random_key(rand: &mut ThreadRng) -> [u8; 16] {
 	use crate::{AesMode, Data};
 
 	pub fn detect_aes_128_ecb(data_slice: &[Data]) -> &Data {
-		data_slice.into_iter()
+		data_slice.iter()
 			.fold((None, 0), |(acc_data, acc_percent), data| {
 				let percent = data.aes_128_ecb_percent();
 				if acc_data.is_none() || percent > acc_percent {
@@ -48,16 +48,14 @@ pub fn random_key(rand: &mut ThreadRng) -> [u8; 16] {
 					(plaintext.aes_128_cbc_encrypt(key, iv), AesMode::CBC)
 				},
 			}
+		} else if rand.gen_ratio(1, 2) {
+			// ECB
+			(plaintext.aes_128_ecb_encrypt(key), AesMode::ECB)
 		} else {
-			if rand.gen_ratio(1, 2) {
-				// ECB
-				(plaintext.aes_128_ecb_encrypt(key), AesMode::ECB)
-			} else {
-				// CBC
-				let mut iv = [0u8; 16];
-				rand.fill_bytes(&mut iv);
-				(plaintext.aes_128_cbc_encrypt(key, iv), AesMode::CBC)
-			}
+			// CBC
+			let mut iv = [0u8; 16];
+			rand.fill_bytes(&mut iv);
+			(plaintext.aes_128_cbc_encrypt(key, iv), AesMode::CBC)
 		}
 	}
 }

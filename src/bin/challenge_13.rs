@@ -1,7 +1,7 @@
 use std::io::{self, prelude::*};
 use cryptopals::{
 	Data,
-	blackbox::UrlParams,
+	blackbox::{UrlParams, BlackBox},
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -18,9 +18,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 		let input = input.trim();
 
 		if !input.is_empty() && hex::decode(input).is_ok() {
-			println!("Profile: {:#?}", params.decrypt_profile(Data::from_hex(input)));
+			println!("Profile: {:#?}", params.decrypt(Data::from_hex(input)));
 		} else {
-			let data = params.profile_for(input);
+			let data = params.encrypt(input);
 			println!("   Data: {}", data.as_hex());
 		}
 	}

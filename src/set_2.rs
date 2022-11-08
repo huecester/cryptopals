@@ -5,7 +5,7 @@ use std::{
 use crate::{
 	AesMode,
 	Data,
-	blackbox::{Aes128EcbBlackBox, BlackBox, UrlParams},
+	blackbox::{Aes128EcbChosenPrefix, BlackBox, UrlParams},
 	functions::random_encrypt,
 };
 
@@ -67,7 +67,7 @@ fn challenge_11() {
 #[test]
 #[ignore = "slow"]
 fn challenge_12() {
-	let black_box = Aes128EcbBlackBox::new();
+	let black_box = Aes128EcbChosenPrefix::new();
 
 	let block_size = {
 		let mut i = 1;
@@ -106,7 +106,7 @@ fn challenge_12() {
 		}
 	}
 
-	assert_eq!(Data::from_b64(Aes128EcbBlackBox::HIDDEN_STRING), Data::from(known_hidden_string));
+	assert_eq!(Data::from_b64(Aes128EcbChosenPrefix::HIDDEN_STRING), Data::from(known_hidden_string));
 }
 
 #[test]
@@ -118,9 +118,8 @@ fn challenge_13() {
 	let padding_length = rounded_hidden_string_length - hidden_string_length;
 
 	let encrypted_without_user = {
-		dbg!(hidden_string_length);
 		let padding = "A".repeat(padding_length + 4);
-		let encrypted = black_box.profile_for(&padding);
+		let encrypted = black_box.encrypt(padding);
 		encrypted.bytes[..rounded_hidden_string_length].to_owned()
 	};
 
@@ -129,7 +128,7 @@ fn challenge_13() {
 			let mut i = 0;
 			loop {
 				let mut set = HashSet::new();
-				let bytes = black_box.profile_for(&"A".repeat(i + block_size * 2)).bytes;
+				let bytes = black_box.encrypt("A".repeat(i + block_size * 2)).bytes;
 				if !bytes.chunks_exact(block_size).all(|block| set.insert(block)) {
 					set.clear();
 					let dup_block_i = bytes.chunks_exact(block_size).position(|block| !set.insert(block)).unwrap();
@@ -139,8 +138,8 @@ fn challenge_13() {
 			}
 		};
 
-		let encrypted_with_admin = black_box.profile_for(
-			&format!(
+		let encrypted_with_admin = black_box.encrypt(
+			format!(
 				"{}{}",
 				"A".repeat(prefix_padding_to_next_block),
 				Data::from("admin").pkcs7_pad(block_size as u8).to_string(),
@@ -150,13 +149,10 @@ fn challenge_13() {
 		&encrypted_with_admin.bytes[i..i + block_size].to_owned()
 	};
 
-	dbg!(black_box.decrypt_profile(&encrypted_admin_block[..]));
-
 	let mut payload = vec![];
 	payload.extend(encrypted_without_user);
 	payload.extend(encrypted_admin_block);
-	let profile = black_box.decrypt_profile(payload);
-	dbg!(&profile);
+	let profile = black_box.decrypt(payload);
 
 	assert_eq!("admin", profile.get("role").unwrap());
 }

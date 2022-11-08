@@ -141,12 +141,12 @@ impl Data {
 	}
 
 	fn pkcs7_unpad(&self) -> Self {
-		let padding = self.bytes.last().unwrap();
+		let padding = *self.bytes.last().unwrap();
 		assert!(
-			!self.bytes.iter().rev().take(*padding as usize).all(|b| b == padding),
+			self.bytes.iter().rev().take(padding as usize).all(|b| b == &padding),
 			"Trying to undo PKCS#7 padding on non-PKCS#7 padded data."
 		);
-		Self::from(&self.bytes[..self.bytes.len() - *padding as usize])
+		Self::from(&self.bytes[..self.bytes.len() - padding as usize])
 	}
 
 	pub fn guess_repeating_key_xor(&self) -> Self {
