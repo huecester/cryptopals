@@ -19,7 +19,7 @@ use aes::{
 	},
 };
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 const NON_GRAPHIC_PENALTY: i32 = -100000;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -129,15 +129,16 @@ impl Data {
 		}
 	}
 
-	pub fn pkcs7_unpad(&self) -> Self {
-		let Some(padding) = self.bytes.last().copied() else {
-			return Self::from(vec![])
-		};
-		assert!(
-			self.bytes.iter().rev().take(padding as usize).all(|b| b == &padding),
-			"Trying to undo PKCS#7 padding on non-PKCS#7 padded data."
-		);
-		Self::from(&self.bytes[..self.bytes.len() - padding as usize])
+	pub fn pkcs7_unpad(&self) -> Result<Self> {
+		if let Some(padding) = self.bytes.last().copied() {
+			if !self.bytes.iter().rev().take(padding as usize).all(|b| b == &padding) {
+				Err(anyhow!("Trying to undo PKCS#7 padding on non-PKCS#7 padded data."))
+			} else {
+				Ok(Self::from(&self.bytes[..self.bytes.len() - padding as usize]))
+			}
+		} else {
+			Ok(Self::from(vec![]))
+		}
 	}
 
 	pub fn guess_repeating_key_xor(&self) -> Self {
@@ -322,6 +323,7 @@ impl ToString for Data {
 mod tests {
 	use super::*;
 	use std::fs::read_to_string;
+	use pretty_assertions::assert_eq;
 
 	#[test]
 	fn aes_128_ecb_encrypt_decrypt_test() -> Result<()> {

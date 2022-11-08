@@ -19,6 +19,7 @@ impl UrlParams {
 		Self::parse(&data.into()
 			.aes_128_ecb_decrypt(self.0)
 			.pkcs7_unpad()
+			.expect("Found invalid padding while decrypting profile.")
 		)
 	}
 
