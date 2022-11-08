@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use super::BlackBox;
+use super::{AesPkcs7, BlackBox};
 use crate::{
 	types::Data,
 	util::random_key,
@@ -40,6 +40,8 @@ impl UrlParams {
 			.collect()
 	}
 }
+
+impl AesPkcs7 for UrlParams {}
 
 impl BlackBox for UrlParams {
 	fn encrypt(&self, data: impl Into<Data>) -> Data {

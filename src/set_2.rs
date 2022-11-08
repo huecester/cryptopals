@@ -4,7 +4,7 @@ use std::{
 };
 use crate::{
 	types::{AesMode, Data},
-	blackbox::{Aes128EcbChosenPrefix, BlackBox, UrlParams},
+	blackbox::{Aes128EcbChosenPrefix, AesPkcs7, BlackBox, UrlParams},
 	util::random_encrypt,
 };
 use anyhow::{Result, anyhow};

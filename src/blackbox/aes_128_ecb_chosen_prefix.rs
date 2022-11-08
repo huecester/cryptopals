@@ -2,7 +2,7 @@ use crate::{
 	types::Data,
 	util::random_key,
 };
-use super::BlackBox;
+use super::{AesPkcs7, BlackBox};
 
 pub struct Aes128EcbChosenPrefix([u8; 16]);
 
@@ -13,6 +13,8 @@ impl Aes128EcbChosenPrefix {
 		Self(random_key(&mut rand::thread_rng()))
 	}
 }
+
+impl AesPkcs7 for Aes128EcbChosenPrefix {}
 
 impl BlackBox for Aes128EcbChosenPrefix {
 	fn encrypt(&self, data: impl Into<Data>) -> Data {
