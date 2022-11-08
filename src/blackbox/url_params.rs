@@ -1,22 +1,9 @@
 use std::collections::HashMap;
+use super::BlackBox;
 use crate::{
-	Data,
-	functions::random_key,
+	types::Data,
+	util::random_key,
 };
-
-
-pub trait BlackBox {
-	fn encrypt(&self, data: impl Into<Data>) -> Data;
-
-	fn aes_pkcs7_get_hidden_string_length(&self) -> usize {
-		let ciphertext_with_padding_length = self.encrypt("").len();
-		let mut padding_length = 0;
-		while self.encrypt("A".repeat(padding_length)).len() == ciphertext_with_padding_length {
-			padding_length += 1;
-		}
-		ciphertext_with_padding_length - padding_length
-	}
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UrlParams([u8; 16]);
@@ -68,8 +55,9 @@ impl Default for UrlParams {
 	}
 }
 
-#[cfg(test)] mod url_params_tests {
+#[cfg(test)] mod tests {
 	use super::*;
+	use pretty_assertions::assert_eq;
 
 	#[test]
 	fn parsing_works() {
@@ -96,32 +84,4 @@ impl Default for UrlParams {
 		assert_eq!("user", profile.get("role").unwrap());
 	}
 
-}
-
-#[cfg(test)] pub use challenges::*;
-#[cfg(test)] mod challenges {
-	use super::*;
-
-	pub struct Aes128EcbChosenPrefix([u8; 16]);
-
-	impl Aes128EcbChosenPrefix {
-		pub const HIDDEN_STRING: &'static str = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK";
-
-		pub fn new() -> Self {
-			Self(random_key(&mut rand::thread_rng()))
-		}
-	}
-
-	impl BlackBox for Aes128EcbChosenPrefix {
-		fn encrypt(&self, data: impl Into<Data>) -> Data {
-			let data: Data = data.into() + Data::from_b64(Self::HIDDEN_STRING);
-			data.pkcs7_pad(16).aes_128_ecb_encrypt(self.0)
-		}
-	}
-
-	impl Default for Aes128EcbChosenPrefix {
-		fn default() -> Self {
-			Self::new()
-		}
-	}
 }

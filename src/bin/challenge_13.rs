@@ -1,10 +1,11 @@
 use std::io::{self, prelude::*};
+use anyhow::Result;
 use cryptopals::{
-	Data,
-	blackbox::{UrlParams, BlackBox},
+	blackbox::{BlackBox, UrlParams},
+	types::Data,
 };
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<()> {
 	let params = UrlParams::new();
 	let stdin = io::stdin();
 	let mut input = String::new();
@@ -18,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 		let input = input.trim();
 
 		if !input.is_empty() && hex::decode(input).is_ok() {
-			println!("Profile: {:#?}", params.decrypt(Data::from_hex(input)));
+			println!("Profile: {:#?}", params.decrypt(Data::from_hex(input)?));
 		} else {
 			let data = params.encrypt(input);
 			println!("   Data: {}", data.as_hex());

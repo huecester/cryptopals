@@ -9,18 +9,23 @@ pub fn random_key(rand: &mut ThreadRng) -> [u8; 16] {
 #[cfg(test)] pub use challenges::*;
 #[cfg(test)] mod challenges {
 	use super::*;
-	use crate::{AesMode, Data};
+	use crate::types::{AesMode, Data};
 
 	pub fn detect_aes_128_ecb(data_slice: &[Data]) -> &Data {
-		data_slice.iter()
-			.fold((None, 0), |(acc_data, acc_percent), data| {
+		assert!(
+			!data_slice.is_empty(),
+			"Data cannot be empty."
+		);
+
+		let mut guesses: Vec<_> = data_slice.iter()
+			.map(|data| {
 				let percent = data.aes_128_ecb_percent();
-				if acc_data.is_none() || percent > acc_percent {
-					(Some(data), percent)
-				} else {
-					(acc_data, acc_percent)
-				}
-			}).0.unwrap()
+				(data, percent)
+			})
+			.collect();
+		guesses.sort_by_key(|k| k.1);
+		guesses.reverse();
+		guesses[0].0
 	}
 
 	pub fn random_encrypt(plaintext: impl Into<Vec<u8>>, mode: Option<AesMode>) -> (Data, AesMode) {
