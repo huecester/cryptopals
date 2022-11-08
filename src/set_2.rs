@@ -57,19 +57,11 @@ fn challenge_11() {
 fn challenge_12() -> Result<()> {
 	let black_box = Aes128EcbChosenPrefix::new();
 
-	let block_size = {
-		let mut i = 1;
-		loop {
-			let output = black_box.encrypt("A".repeat(i * 2));
-			if output.bytes()[..i] == output.bytes()[i..i*2] { break; }
-			i += 1;
-		}
-		i
-	};
+	let block_size = black_box.block_size();
 
 	assert_eq!(AesMode::ECB, black_box.encrypt("A".repeat(block_size * 4)).aes_128_ecb_cbc_oracle());
 
-	let hidden_string_length = black_box.aes_pkcs7_get_hidden_string_length();
+	let hidden_string_length = black_box.hidden_string_length();
 	let rounded_hidden_string_length = ((hidden_string_length / block_size) + 1) * block_size;
 
 	let mut known_hidden_string = String::from("");
@@ -103,8 +95,8 @@ fn challenge_12() -> Result<()> {
 #[test]
 fn challenge_13() -> Result<()> {
 	let black_box = UrlParams::new();
-	let block_size = 16;
-	let hidden_string_length = black_box.aes_pkcs7_get_hidden_string_length();
+	let block_size = black_box.block_size();
+	let hidden_string_length = black_box.hidden_string_length();
 	let rounded_hidden_string_length = ((hidden_string_length / block_size) + 1) * block_size;
 	let padding_length = rounded_hidden_string_length - hidden_string_length;
 
@@ -119,8 +111,8 @@ fn challenge_13() -> Result<()> {
 			let mut i = 0;
 			loop {
 				let mut set = HashSet::new();
-				let bytes = black_box.encrypt("A".repeat(i + block_size * 2));
-				let bytes = bytes.bytes();
+				let output = black_box.encrypt("A".repeat(i + block_size * 2));
+				let bytes = output.bytes();
 				if !bytes.chunks_exact(block_size).all(|block| set.insert(block)) {
 					set.clear();
 					let dup_block_i = bytes.chunks_exact(block_size).position(|block| !set.insert(block)).unwrap();
